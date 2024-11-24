@@ -11,6 +11,27 @@ The project follows the **Model-View-Controller (MVC)** design pattern to ensure
   
 This project is **almost production-ready** and can be used as a starting point for building authentication systems with role-based access control.
 
+
+
+login credentials:
+role: "ADMIN"
+email: "demo1@gmail.com"
+password: "Demo@123"
+
+
+role: "CLIENT"
+email: "main@gmail.com"
+password: "main@123"
+
+
+
+.env file:
+PORT=3000
+SESSION_SECRET=some super secret
+ADMIN_EMAIL=admin1@gmail.com
+MONGODB_URI=mongodb+srv://rbac:rbac%401234@rbac.dm2dy.mongodb.net/myDatabase?retryWrites=true&w=majority
+DB_NAME=rbac
+
 ---
 
 ## Setup Instructions
@@ -55,4 +76,22 @@ Step 6: Start the app by
 npm start
 ```
 
+login credentials:
+role: "ADMIN"
+email: "demo1@gmail.com"
+password: "Demo@123"
+
+
+role: "CLIENT"
+email: "main@gmail.com"
+password: "main@123"
+
+
+
+.env file:
+PORT=3000
+SESSION_SECRET=some super secret
+ADMIN_EMAIL=admin1@gmail.com
+MONGODB_URI=mongodb+srv://rbac:rbac%401234@rbac.dm2dy.mongodb.net/myDatabase?retryWrites=true&w=majority
+DB_NAME=rbac
 
