@@ -6,7 +6,7 @@ require('dotenv').config();
 const session = require('express-session');
 const connectFlash = require('connect-flash');
 const passport = require('passport');
-const connectMongo = require('connect-mongo');
+const MongoStore = require('connect-mongo');
 const { ensureLoggedIn } = require('connect-ensure-login');
 const { roles } = require('./utils/constants');
 
@@ -18,34 +18,48 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-const MongoStore = connectMongo(session);
-// Init Session
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    dbName: process.env.DB_NAME, // Use the database name from the environment variable
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log('💾 MongoDB Atlas connected...');
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    process.exit(1); // Exit the process if DB connection fails
+  });
+
+// Session Setup
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      // secure: true,
-      httpOnly: true,
+      httpOnly: true, // Use secure: true in production with HTTPS
     },
-    store: new MongoStore({ mongooseConnection: mongoose.connection }),
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      dbName: process.env.DB_NAME,
+      collectionName: 'sessions',
+      ttl: 14 * 24 * 60 * 60, // Session expiry (14 days)
+    }),
   })
 );
 
-// For Passport JS Authentication
+// Passport Middleware
 app.use(passport.initialize());
 app.use(passport.session());
 require('./utils/passport.auth');
 
-app.use((req, res, next) => {
-  res.locals.user = req.user;
-  next();
-});
-
-// Connect Flash
+// Flash Messages
 app.use(connectFlash());
 app.use((req, res, next) => {
+  res.locals.user = req.user;
   res.locals.messages = req.flash();
   next();
 });
@@ -77,47 +91,27 @@ app.use((error, req, res, next) => {
   res.render('error_40x', { error });
 });
 
-// Setting the PORT
+// Start the Server
 const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running @ http://localhost:${PORT}`);
+});
 
-// Making a connection to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    dbName: process.env.DB_NAME,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-  })
-  .then(() => {
-    console.log('💾 connected...');
-    // Listening for connections on the defined PORT
-    app.listen(PORT, () => console.log(`🚀 @ http://localhost:${PORT}`));
-  })
-  .catch((err) => console.log(err.message));
-
-// function ensureAuthenticated(req, res, next) {
-//   if (req.isAuthenticated()) {
-//     next();
-//   } else {
-//     res.redirect('/auth/login');
-//   }
-// }
-
+// Helper Functions
 function ensureAdmin(req, res, next) {
-  if (req.user.role === roles.admin) {
+  if (req.user && req.user.role === roles.admin) {
     next();
   } else {
-    req.flash('warning', 'you are not Authorized to see this route');
+    req.flash('warning', 'You are not authorized to see this route');
     res.redirect('/');
   }
 }
 
 function ensureModerator(req, res, next) {
-  if (req.user.role === roles.moderator) {
+  if (req.user && req.user.role === roles.moderator) {
     next();
   } else {
-    req.flash('warning', 'you are not Authorized to see this route');
+    req.flash('warning', 'You are not authorized to see this route');
     res.redirect('/');
   }
 }
